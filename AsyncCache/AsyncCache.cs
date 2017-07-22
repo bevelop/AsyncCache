@@ -15,7 +15,7 @@ namespace AsyncCache
             _expiration = expiration;
         }
 
-        public Task<T> AddOrGetExisting(string key, Func<Task<T>> valueFactory)
+        public async Task<T> AddOrGetExisting(string key, Func<Task<T>> valueFactory)
         {
             var newEntry = new CacheEntry<T>(valueFactory);
             var existingItem = _cache.GetOrCreate(key, entry =>
@@ -24,7 +24,15 @@ namespace AsyncCache
                 return newEntry;
             });
 
-            return (existingItem ?? newEntry).Get();
+            try
+            {
+                return await (existingItem ?? newEntry).Get();
+            }
+            catch (Exception)
+            {
+                _cache.Remove(key);
+                throw;
+            }
         }
     }
 }
